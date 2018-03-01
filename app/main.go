@@ -56,7 +56,9 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	err := templates.ExecuteTemplate(w, "index.html.tmpl", nil)
+	_, user := isLoggedIn(r)
+
+	err := templates.ExecuteTemplate(w, "index.html.tmpl", user)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -97,6 +99,7 @@ func registerPostHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Fprintf(w, "Error registering user %s", err)
 	} else {
+		setCookie(w, register.Username)
 		fmt.Fprintf(w, "User registered succesfully %d", userid)
 	}
 }
@@ -130,17 +133,39 @@ func loginPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	setCookie(w, user.Username)
+
+	fmt.Fprintf(w, "User logged in succesfully %s", user.Username)
+}
+
+func setCookie(w http.ResponseWriter, value string) {
 	cookie := &http.Cookie{
 		Name:  "session",
 		Value: uuid.NewV4().String(),
 	}
 	storageMutex.Lock()
-	sessionStore[cookie.Value] = user.Username
+	sessionStore[cookie.Value] = value
 	storageMutex.Unlock()
 
 	http.SetCookie(w, cookie)
+}
 
-	fmt.Fprintf(w, "User logged in succesfully %s", user.Username)
+func isLoggedIn(r *http.Request) (bool, *user) {
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		return false, nil
+	}
+	if cookie != nil {
+		storageMutex.RLock()
+		username, exists := sessionStore[cookie.Value]
+		storageMutex.RUnlock()
+		user, err := getUser(username, db)
+		if err != nil {
+			return false, nil
+		}
+		return exists, user
+	}
+	return false, nil
 }
 
 type authenticationMiddleware struct {
