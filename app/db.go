@@ -48,8 +48,8 @@ func insertUser(register *registerPayload, hash []byte, db *sql.DB) (int, error)
 	return userid, nil
 }
 
-func getUser(login *loginPayload, db *sql.DB) (*user, error) {
-	row := db.QueryRow(`SELECT username, email_address, password from users WHERE username = $1`, login.Username)
+func getUser(username string, db *sql.DB) (*user, error) {
+	row := db.QueryRow(`SELECT username, email_address, password from users WHERE username = $1`, username)
 
 	user := new(user)
 	if err := row.Scan(&user.Username, &user.Email, &user.Password); err != nil {
