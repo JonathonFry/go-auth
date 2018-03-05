@@ -20,7 +20,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var templates = template.Must(template.ParseFiles("tmpl/index.html.tmpl", "tmpl/login.html.tmpl", "tmpl/register.html.tmpl"))
+var templates = template.Must(template.ParseFiles("tmpl/index.html", "tmpl/login.html", "tmpl/register.html"))
 
 var sessionStore map[string]string //TODO - Replace with redis DB
 var storageMutex sync.RWMutex
@@ -40,6 +40,9 @@ func main() {
 	r.HandleFunc("/register", registerGetHandler).Methods("GET")
 	r.HandleFunc("/register", registerPostHandler).Methods("POST")
 
+	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
+	r.PathPrefix("/static/").Handler(s)
+
 	amw := authenticationMiddleware{}
 	r.Use(amw.Middleware)
 
@@ -58,7 +61,7 @@ func main() {
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	_, user := isLoggedIn(r)
 
-	err := templates.ExecuteTemplate(w, "index.html.tmpl", user)
+	err := templates.ExecuteTemplate(w, "index.html", user)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,7 +77,7 @@ func usersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func registerGetHandler(w http.ResponseWriter, r *http.Request) {
-	err := templates.ExecuteTemplate(w, "register.html.tmpl", nil)
+	err := templates.ExecuteTemplate(w, "register.html", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -105,7 +108,7 @@ func registerPostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func loginGetHandler(w http.ResponseWriter, r *http.Request) {
-	err := templates.ExecuteTemplate(w, "login.html.tmpl", nil)
+	err := templates.ExecuteTemplate(w, "login.html", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -189,10 +192,10 @@ func (amw *authenticationMiddleware) Middleware(next http.Handler) http.Handler 
 			present = false
 		}
 
-		if present || strings.Contains(r.URL.Path, "login") || strings.Contains(r.URL.Path, "register") {
+		if present || strings.Contains(r.URL.Path, "login") || strings.Contains(r.URL.Path, "register") || strings.Contains(r.URL.Path, "static") {
 			next.ServeHTTP(w, r)
 		} else {
-			http.Redirect(w, r, "/login", http.StatusPermanentRedirect)
+			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
 			return
 		}
 	})
