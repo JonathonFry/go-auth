@@ -7,6 +7,8 @@ services:
       - 5432:5432
   app:
     build: ./app
+    volumes:
+      - ./app:/go/src/github.com/jonathonfry/login
     links: 
       - db
     ports:
