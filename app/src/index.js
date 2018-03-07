@@ -9,10 +9,15 @@ import { promiseMiddleware } from './middleware';
 
 const defaultState = {
      appName: 'go-auth',
-     users: []
+     users: null
 };
 const reducer = function(state = defaultState, action) {
-    return state;
+     switch(action.type) {
+        case 'USERS_LOADED':
+            return { ...state, users: action.payload}
+        default: 
+            return state;
+    }
 };
 
 const store = createStore(reducer, applyMiddleware(promiseMiddleware));

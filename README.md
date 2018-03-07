@@ -19,3 +19,6 @@ Next steps
 - handle authentication from the react app side
 - add app to docker-compose for local development (GoDoRP is a good template to follow)
 - add HTTPS support for better security
+
+## Following this tutorial for react frontend:
+https://thinkster.io/tutorials/react-redux-ajax-middleware/

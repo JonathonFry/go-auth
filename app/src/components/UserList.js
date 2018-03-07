@@ -1,4 +1,5 @@
 import React from 'react';
+import UserView from './UserView';
 
 const UserList = props => {
   if (!props.users) {
@@ -17,10 +18,11 @@ const UserList = props => {
 
   return (
     <div>
+      <h3>Users:</h3>
       {
         props.users.map(user => {
           return (
-            <h2>{user.username}</h2>
+            <UserView user={user} key={user.username} />
           );
         })
       }

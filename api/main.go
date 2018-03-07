@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -43,8 +44,8 @@ func main() {
 	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	r.PathPrefix("/static/").Handler(s)
 
-	amw := authenticationMiddleware{}
-	r.Use(amw.Middleware)
+	// amw := authenticationMiddleware{}
+	// r.Use(amw.Middleware)
 	corsObj := handlers.AllowedOrigins([]string{"*"})
 
 	loggedRouter := handlers.CORS(corsObj)(handlers.LoggingHandler(os.Stdout, r))
@@ -74,7 +75,17 @@ func usersHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Error retrieving users: %s", err)
 		return
 	}
-	fmt.Fprintf(w, "Users: %s", users)
+
+	json, marshalErr := json.Marshal(users)
+
+	if marshalErr != nil {
+		http.Error(w, marshalErr.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write(json)
 }
 
 func registerGetHandler(w http.ResponseWriter, r *http.Request) {
