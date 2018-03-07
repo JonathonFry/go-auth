@@ -65,7 +65,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := templates.ExecuteTemplate(w, "index.html", user)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintf(w, "Error loading index: %s", err)
 	}
 }
 

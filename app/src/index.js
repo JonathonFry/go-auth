@@ -4,27 +4,18 @@ import './index.css';
 import App from './App';
 import { Provider } from 'react-redux';
 import registerServiceWorker from './registerServiceWorker';
-import { applyMiddleware, createStore } from 'redux';
-import { promiseMiddleware } from './middleware';
-
-const defaultState = {
-     appName: 'go-auth',
-     users: null
-};
-const reducer = function(state = defaultState, action) {
-     switch(action.type) {
-        case 'USERS_LOADED':
-            return { ...state, users: action.payload}
-        default: 
-            return state;
-    }
-};
-
-const store = createStore(reducer, applyMiddleware(promiseMiddleware));
+import store from './store';
+import { Router, Route, IndexRoute } from 'react-router';
+import { HashRouter } from 'react-router-dom';
+import Home from './components/Home';
 
 ReactDOM.render((
     <Provider store={store}>
-        <App />
+        <HashRouter>
+            <Route path="/" component={App}>
+                <IndexRoute component={Home} />
+            </Route>
+        </HashRouter>
     </Provider>
 ), document.getElementById('root'));
 
