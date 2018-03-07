@@ -9,11 +9,11 @@ WORKDIR /go/src/github.com/jonathonfry/login
 
 RUN dep ensure --vendor-only
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix nocgo -o /app .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix nocgo -o /api .
 
 CMD if [ ${ENV} = production ]; \
 	then \
-	/app; \
+	/api; \
 	else \
 	go get github.com/pilu/fresh && \
 	fresh; \

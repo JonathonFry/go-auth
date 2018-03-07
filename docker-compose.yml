@@ -5,10 +5,10 @@ services:
     build: ./db
     ports:
       - 5432:5432
-  app:
-    build: ./app
+  api:
+    build: ./api
     volumes:
-      - ./app:/go/src/github.com/jonathonfry/login
+      - ./api:/go/src/github.com/jonathonfry/login
     links: 
       - db
     ports:
