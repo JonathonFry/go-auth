@@ -4,3 +4,6 @@ services:
   api:
     environment:
       - ENV=production
+  app:
+    environment:
+      - ENV=production

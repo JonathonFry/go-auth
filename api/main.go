@@ -45,8 +45,9 @@ func main() {
 
 	amw := authenticationMiddleware{}
 	r.Use(amw.Middleware)
+	corsObj := handlers.AllowedOrigins([]string{"*"})
 
-	loggedRouter := handlers.LoggingHandler(os.Stdout, r)
+	loggedRouter := handlers.CORS(corsObj)(handlers.LoggingHandler(os.Stdout, r))
 
 	srv := &http.Server{
 		Handler:      loggedRouter,

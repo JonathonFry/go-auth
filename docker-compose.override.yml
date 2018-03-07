@@ -4,3 +4,6 @@ services:
   api:
     environment:
       - ENV=dev
+  app:
+    environment:
+      - ENV=dev

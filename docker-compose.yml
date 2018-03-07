@@ -12,4 +12,11 @@ services:
     links: 
       - db
     ports:
-      - 8080:8080
+      - 8080:8080  
+  app:
+    build:
+      context: ./app
+    volumes:
+      - ./app/src:/app/src 
+    ports:
+      - 3000:3000
