@@ -15,12 +15,20 @@ function json(response) {
     return response.json()
 }
 
-const Users = {
-    all : _ => fetch(`${API_BASE_URL}/users`)
-    .then(status)
-    .then(json)
-};
+const requests = {
+    del: url => fetch(url,{ method: "DELETE" }).then(status).then(json),
+    get: url => fetch(url,{ method: "GET" }).then(status).then(json),
+    put: (url, body) => fetch(url,{ method: "PUT", body: body}).then(status).then(json),
+    post: (url, body) => fetch(url,{ method: "POST", body: body}).then(status).then(json)
+  };
+
+const Auth = {
+    current: () =>  requests.get(`${API_BASE_URL}/user`),
+    all: () =>      requests.get(`${API_BASE_URL}/users`),
+    login: (username, password) =>  requests.post(`${API_BASE_URL}/login`, { username, password }),
+    register: (username, email, password) =>  requests.post(`${API_BASE_URL}/register`,{ username, email, password })
+  };
 
 export default {
-   Users
+   Auth
 };

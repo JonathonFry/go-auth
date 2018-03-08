@@ -22,8 +22,8 @@ class Login extends React.Component {
                   <fieldset className="form-group">
                     <input
                       className="form-control form-control-lg"
-                      type="email"
-                      placeholder="Email" />
+                      type="username"
+                      placeholder="Username" />
                   </fieldset>
 
                   <fieldset className="form-group">
