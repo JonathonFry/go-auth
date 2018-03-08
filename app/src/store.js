@@ -2,8 +2,8 @@ import { applyMiddleware, createStore } from 'redux';
 import { promiseMiddleware } from './middleware';
 
 const defaultState = {
-  appName: 'conduit',
-  articles: null
+    appName: 'go-auth',
+    users: null
 };
 const reducer = function(state = defaultState, action) {
     switch (action.type) {

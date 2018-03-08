@@ -1,9 +1,10 @@
 import React, { Component } from 'react';
+import { withRouter } from 'react-router'
 import { connect } from 'react-redux';
 // import logo from './logo.svg';
 import './App.css';
 import Header from './components/Header';
-import Home from './components/Home';
+import PropTypes from 'prop-types';
 
 const mapStateToProps = state => ({
   appName: state.appName,
@@ -16,10 +17,14 @@ class App extends Component {
     return (
       <div>
         <Header appName={this.props.appName} />
-        <Home />
+        {this.props.children}
       </div>
     );
   }
 }
 
-export default connect(mapStateToProps, () => ({}) )(App);
+App.contextTypes = {
+  router: PropTypes.object.isRequired
+};
+
+export default withRouter(connect(mapStateToProps, () => ({}) )(App));

@@ -5,17 +5,19 @@ import App from './App';
 import { Provider } from 'react-redux';
 import registerServiceWorker from './registerServiceWorker';
 import store from './store';
-import { Router, Route, IndexRoute } from 'react-router';
-import { HashRouter } from 'react-router-dom';
+import { Route } from 'react-router';
+import { BrowserRouter } from 'react-router-dom'
 import Home from './components/Home';
+import Login from './components/Login';
 
 ReactDOM.render((
     <Provider store={store}>
-        <HashRouter>
-            <Route path="/" component={App}>
-                <IndexRoute component={Home} />
-            </Route>
-        </HashRouter>
+        <BrowserRouter>
+            <App>
+                <Route exact path="/" component={Home} />
+                <Route path="/login" component={Login} />
+            </App>
+        </BrowserRouter>
     </Provider>
 ), document.getElementById('root'));
 
