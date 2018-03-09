@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"net/http"
 	"os"
 	"strings"
@@ -15,13 +14,10 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/schema"
 	_ "github.com/lib/pq"
 	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
-
-var templates = template.Must(template.ParseFiles("tmpl/index.html", "tmpl/login.html", "tmpl/register.html"))
 
 var sessionStore map[string]string //TODO - Replace with redis DB
 var storageMutex sync.RWMutex
@@ -34,18 +30,12 @@ func main() {
 	sessionStore = make(map[string]string)
 
 	r := mux.NewRouter()
-	r.HandleFunc("/", indexHandler).Methods("GET")
 	r.HandleFunc("/users", usersHandler).Methods("GET")
-	r.HandleFunc("/login", loginGetHandler).Methods("GET")
-	r.HandleFunc("/login", loginPostHandler).Methods("POST")
-	r.HandleFunc("/register", registerGetHandler).Methods("GET")
-	r.HandleFunc("/register", registerPostHandler).Methods("POST")
+	r.HandleFunc("/login", loginHandler).Methods("POST")
+	r.HandleFunc("/register", registerHandler).Methods("POST")
 
-	s := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
-	r.PathPrefix("/static/").Handler(s)
-
-	// amw := authenticationMiddleware{}
-	// r.Use(amw.Middleware)
+	amw := authenticationMiddleware{}
+	r.Use(amw.Middleware)
 	corsObj := handlers.AllowedOrigins([]string{"*"})
 
 	loggedRouter := handlers.CORS(corsObj)(handlers.LoggingHandler(os.Stdout, r))
@@ -58,15 +48,6 @@ func main() {
 	}
 
 	log.Fatal(srv.ListenAndServe())
-}
-
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	_, user := isLoggedIn(r)
-
-	err := templates.ExecuteTemplate(w, "index.html", user)
-	if err != nil {
-		fmt.Fprintf(w, "Error loading index: %s", err)
-	}
 }
 
 func usersHandler(w http.ResponseWriter, r *http.Request) {
@@ -88,21 +69,18 @@ func usersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
-func registerGetHandler(w http.ResponseWriter, r *http.Request) {
-	err := templates.ExecuteTemplate(w, "register.html", nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func registerPostHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-
+func registerHandler(w http.ResponseWriter, r *http.Request) {
 	register := new(registerPayload)
-	decoder := schema.NewDecoder()
-	err := decoder.Decode(register, r.PostForm)
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(register)
 	if err != nil {
-		log.Fatal("Error parsing registration data")
+		fmt.Fprintf(w, "Error parsing registration data")
+		return
+	}
+
+	if len(register.Email) == 0 || len(register.Username) == 0 || len(register.Password) == 0 {
+		fmt.Fprintf(w, "Error required fields are missing")
+		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(register.Password), bcrypt.DefaultCost)
@@ -119,21 +97,19 @@ func registerPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func loginGetHandler(w http.ResponseWriter, r *http.Request) {
-	err := templates.ExecuteTemplate(w, "login.html", nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func loginPostHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-
+func loginHandler(w http.ResponseWriter, r *http.Request) {
 	login := new(loginPayload)
-	decoder := schema.NewDecoder()
-	err := decoder.Decode(login, r.PostForm)
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(login)
 	if err != nil {
-		log.Fatal("Error parsing login data")
+		fmt.Fprintf(w, "Error parsing login data")
+		return
+	}
+
+	log.Println(login)
+	if len(login.Username) == 0 || len(login.Password) == 0 {
+		fmt.Fprintf(w, "Error required fields are missing")
+		return
 	}
 
 	user, err := getUser(login.Username, db)
@@ -207,7 +183,7 @@ func (amw *authenticationMiddleware) Middleware(next http.Handler) http.Handler 
 		if present || strings.Contains(r.URL.Path, "login") || strings.Contains(r.URL.Path, "register") || strings.Contains(r.URL.Path, "static") {
 			next.ServeHTTP(w, r)
 		} else {
-			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+			http.Error(w, "Unauthorised", http.StatusUnauthorized)
 			return
 		}
 	})
