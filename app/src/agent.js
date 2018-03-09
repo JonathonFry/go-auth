@@ -25,8 +25,8 @@ const requests = {
 const Auth = {
     current: () =>  requests.get(`${API_BASE_URL}/user`),
     all: () =>      requests.get(`${API_BASE_URL}/users`),
-    login: (username, password) =>  requests.post(`${API_BASE_URL}/login`, { username, password }),
-    register: (username, email, password) =>  requests.post(`${API_BASE_URL}/register`,{ username, email, password })
+    login: (username, password) =>  requests.post(`${API_BASE_URL}/login`, JSON.stringify({ username, password })),
+    register: (username, email, password) => requests.post(`${API_BASE_URL}/register`, JSON.stringify({ username, email, password }))
   };
 
 export default {

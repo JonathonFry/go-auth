@@ -1,5 +1,11 @@
 import { applyMiddleware, createStore } from 'redux';
 import { promiseMiddleware } from './middleware';
+import {
+    REGISTER,
+    UPDATE_FIELD_AUTH,
+    USERS_LOADED,
+    LOGIN
+  } from './constants/actionTypes';
 
 const defaultState = {
     appName: 'go-auth',
@@ -7,10 +13,24 @@ const defaultState = {
 };
 const reducer = function(state = defaultState, action) {
     switch (action.type) {
-       case 'USERS_LOADED':
+        case USERS_LOADED:
            return { ...state, users: action.payload}
-       default: 
-           return state;
+        case UPDATE_FIELD_AUTH:
+            return { ...state, [action.key]: action.value };
+        case REGISTER:
+            return {
+              ...state,
+              inProgress: false,
+              errors: action.error ? action.payload.errors : null
+            };
+        case LOGIN:
+            return {
+              ...state,
+              inProgress: false,
+              errors: action.error ? action.payload.errors : null
+            };
+        default: 
+            return state;
    }
 };
 

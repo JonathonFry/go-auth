@@ -2,8 +2,7 @@ import MainView from './MainView';
 import React from 'react';
 import { connect } from 'react-redux';
 import agent from '../agent';
-
-const Promise = global.Promise;
+import { USERS_LOADED } from '../constants/actionTypes';
 
 const mapStateToProps = state => ({
   appName: state.appName
@@ -11,14 +10,20 @@ const mapStateToProps = state => ({
 
 const mapDispatchToProps = dispatch => ({
   onLoad: (payload) =>
-  dispatch({ type: 'USERS_LOADED', payload }),
+  dispatch({ type: USERS_LOADED, payload }),
 });
   
 
 class Home extends React.Component {
   
   componentWillMount() {
-    this.props.onLoad(agent.Auth.all());
+    agent.Auth.all()
+    .then(function(response){
+      this.props.onLoad(response);  
+    })
+    .catch(function(error) {
+      console.log('There has been a problem with your fetch operation: ', error.message);
+    })
   }
 
   render() {
