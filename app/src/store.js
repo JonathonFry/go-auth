@@ -1,6 +1,7 @@
 import { applyMiddleware, createStore } from 'redux';
-import { promiseMiddleware } from './middleware';
+import { promiseMiddleware, localStorageMiddleware } from './middleware';
 import {
+    APP_LOAD,
     REGISTER,
     UPDATE_FIELD_AUTH,
     USERS_LOADED,
@@ -12,10 +13,19 @@ const defaultState = {
     users: null,
     username: '',
     email: '',
-    password: ''
+    password: '',
+    token: null,
+    currentUser: null,
 };
 const reducer = function(state = defaultState, action) {
     switch (action.type) {
+        case APP_LOAD:
+            return {
+                ...state,
+                token: action.token || null,
+                appLoaded: true,
+                currentUser: action.payload ? action.payload.user : null
+            };
         case USERS_LOADED:
            return { ...state, users: action.payload}
         case UPDATE_FIELD_AUTH:
@@ -37,7 +47,7 @@ const reducer = function(state = defaultState, action) {
    }
 };
 
-const middleware = applyMiddleware(promiseMiddleware);
+const middleware = applyMiddleware(promiseMiddleware, localStorageMiddleware);
 
 const store = createStore(reducer, middleware);
 

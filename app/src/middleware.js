@@ -1,3 +1,10 @@
+import agent from './agent';
+import {
+  LOGIN,
+  LOGOUT,
+  REGISTER
+} from './constants/actionTypes';
+
 const promiseMiddleware = store => next => action => {
     if (isPromise(action.payload)) {
       action.payload.then(
@@ -17,11 +24,27 @@ const promiseMiddleware = store => next => action => {
   
     next(action);
 };
+
+const localStorageMiddleware = store => next => action => {
+  if (action.type === REGISTER || action.type === LOGIN) {
+    if (!action.error) {
+      window.localStorage.setItem('jwt', action.payload.Token);
+      agent.setToken(action.payload.Token);
+    }
+  } else if (action.type === LOGOUT) {
+    window.localStorage.setItem('jwt', '');
+    agent.setToken(null);
+  }
+
+  next(action);
+};
   
 function isPromise(v) {
     return v && typeof v.then === 'function';
 }
+
   
 export {
-    promiseMiddleware
+    promiseMiddleware,
+    localStorageMiddleware
 };

@@ -3,39 +3,34 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
-	"sync"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
-	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
-var sessionStore map[string]string //TODO - Replace with redis DB
-var storageMutex sync.RWMutex
-
+var secret []byte
 var db *sql.DB
 
 func main() {
 	db = awaitDb()
 
-	sessionStore = make(map[string]string)
-
+	secret = []byte("secret")
 	r := mux.NewRouter()
-	r.HandleFunc("/users", usersHandler).Methods("GET")
+	r.Handle("/user", authMiddleware(userHandler)).Methods("GET")
+	r.Handle("/users", authMiddleware(usersHandler)).Methods("GET")
 	r.HandleFunc("/login", loginHandler).Methods("POST")
 	r.HandleFunc("/register", registerHandler).Methods("POST")
 
-	amw := authenticationMiddleware{}
-	r.Use(amw.Middleware)
 	corsObj := handlers.AllowedOrigins([]string{"*"})
 
 	loggedRouter := handlers.CORS(corsObj)(handlers.LoggingHandler(os.Stdout, r))
@@ -50,24 +45,38 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func usersHandler(w http.ResponseWriter, r *http.Request) {
+func authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		validToken := validToken(r)
+		if !validToken {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Unauthorized"))
+		} else {
+			next.ServeHTTP(w, r)
+		}
+	})
+}
+
+var usersHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	users, err := getUsers(db)
 	if err != nil {
 		fmt.Fprintf(w, "Error retrieving users: %s", err)
 		return
 	}
 
-	json, marshalErr := json.Marshal(users)
+	returnJSON(w, users)
+})
 
-	if marshalErr != nil {
-		http.Error(w, marshalErr.Error(), http.StatusInternalServerError)
+var userHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	user, err := loggedInUser(r)
+
+	if err != nil {
+		fmt.Fprintf(w, "Error retrieving user: %s", err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write(json)
-}
+	returnJSON(w, user)
+})
 
 func registerHandler(w http.ResponseWriter, r *http.Request) {
 	register := new(registerPayload)
@@ -88,12 +97,18 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("Error hashing password")
 	}
 
-	userid, err := insertUser(register, hash, db)
+	_, err = insertUser(register, hash, db)
 	if err != nil {
 		fmt.Fprintf(w, "Error registering user %s", err)
 	} else {
-		setCookie(w, register.Username)
-		fmt.Fprintf(w, "User registered succesfully %d", userid)
+		token, err := createToken(&user{Username: register.Username, Password: string(hash), Email: register.Email})
+
+		if err != nil {
+			fmt.Fprintf(w, "Error generating token %s", err)
+			return
+		}
+
+		returnJSON(w, AuthToken{Token: token})
 	}
 }
 
@@ -124,67 +139,97 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	setCookie(w, user.Username)
+	token, err := createToken(user)
 
-	fmt.Fprintf(w, "User logged in succesfully %s", user.Username)
-}
-
-func setCookie(w http.ResponseWriter, value string) {
-	cookie := &http.Cookie{
-		Name:  "session",
-		Value: uuid.NewV4().String(),
-	}
-	storageMutex.Lock()
-	sessionStore[cookie.Value] = value
-	storageMutex.Unlock()
-
-	http.SetCookie(w, cookie)
-}
-
-func isLoggedIn(r *http.Request) (bool, *user) {
-	cookie, err := r.Cookie("session")
 	if err != nil {
-		return false, nil
+		fmt.Fprintf(w, "Error generating token %s", err)
+		return
 	}
-	if cookie != nil {
-		storageMutex.RLock()
-		username, exists := sessionStore[cookie.Value]
-		storageMutex.RUnlock()
-		user, err := getUser(username, db)
-		if err != nil {
-			return false, nil
-		}
-		return exists, user
-	}
-	return false, nil
+
+	returnJSON(w, AuthToken{Token: token})
 }
 
-type authenticationMiddleware struct {
-}
-
-func (amw *authenticationMiddleware) Middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var present bool
-
-		cookie, err := r.Cookie("session")
-		if err != nil {
-			present = false
-		}
-
-		if cookie != nil {
-			storageMutex.RLock()
-			// Retrieve user from cache
-			_, present = sessionStore[cookie.Value]
-			storageMutex.RUnlock()
-		} else {
-			present = false
-		}
-
-		if present || strings.Contains(r.URL.Path, "login") || strings.Contains(r.URL.Path, "register") || strings.Contains(r.URL.Path, "static") {
-			next.ServeHTTP(w, r)
-		} else {
-			http.Error(w, "Unauthorised", http.StatusUnauthorized)
-			return
-		}
+func createToken(user *user) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": user.Username,
 	})
+
+	tokenString, err := token.SignedString(secret)
+	return tokenString, err
+}
+
+func token(tokenString string) (*jwt.Token, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return secret, nil
+	})
+
+	if err == nil && token.Valid {
+		return token, err
+	} else if ve, ok := err.(*jwt.ValidationError); ok {
+		if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+			fmt.Println("That's not even a token")
+			return nil, err
+		} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+			// Token is either expired or not active yet
+			fmt.Println("Timing is everything")
+			return nil, err
+		} else {
+			fmt.Println("Couldn't handle this token:", err)
+			return nil, err
+		}
+	} else {
+		fmt.Println("Couldn't handle this token:", err)
+		return nil, err
+	}
+}
+
+func validToken(r *http.Request) bool {
+	tokenString := r.Header.Get("Authorization")
+
+	if len(tokenString) > 0 {
+		_, err := token(tokenString)
+		if err != nil {
+			return false
+		}
+		return true
+	}
+
+	return false
+}
+
+func loggedInUser(r *http.Request) (*user, error) {
+	tokenString := r.Header.Get("Authorization")
+
+	if len(tokenString) > 0 {
+		token, err := token(tokenString)
+		if err != nil {
+			return nil, err
+		}
+		c := token.Claims.(*jwt.MapClaims)
+		username := (*c)["username"].(string)
+
+		user, err := getUser(username, db)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return user, nil
+	}
+
+	// No token sent
+	return nil, errors.New("no user found")
+}
+
+func returnJSON(w http.ResponseWriter, data interface{}) {
+	json, marshalErr := json.Marshal(data)
+
+	if marshalErr != nil {
+		http.Error(w, marshalErr.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write(json)
 }
