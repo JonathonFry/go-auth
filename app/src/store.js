@@ -9,7 +9,10 @@ import {
 
 const defaultState = {
     appName: 'go-auth',
-    users: null
+    users: null,
+    username: '',
+    email: '',
+    password: ''
 };
 const reducer = function(state = defaultState, action) {
     switch (action.type) {
