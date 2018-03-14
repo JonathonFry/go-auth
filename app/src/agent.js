@@ -3,6 +3,7 @@ const API_BASE_URL = 'http://localhost:8080'
 let token = null;
 
 function status(response) {
+  console.log('status ' + response.status);
     if (response.status >= 200 && response.status < 300 && !response.redirected) {
       return Promise.resolve(response)
     } else {
@@ -15,10 +16,10 @@ function json(response) {
 }
 
 const requests = {
-    del: url => fetch(url,{ method: "DELETE", headers: {"Authorization": token}}).then(json).then(status),
-    get: url => fetch(url,{ method: "GET", headers: {"Authorization": token}}).then(json).then(status),
-    put: (url, body) => fetch(url,{ method: "PUT", body: body, headers: {"Authorization": token}}).then(json).then(status),
-    post: (url, body) => fetch(url,{ method: "POST", body: body}).then(json).then(status)
+    del: url => fetch(url,{ method: "DELETE", headers: {"Authorization": token}}).then(status).then(json),
+    get: url => fetch(url,{ method: "GET", headers: {"Authorization": token}}).then(status).then(json),
+    put: (url, body) => fetch(url,{ method: "PUT", body: body, headers: {"Authorization": token}}).then(status).then(json),
+    post: (url, body) => fetch(url,{ method: "POST", body: body}).then(status).then(json)
   };
 
 const Auth = {

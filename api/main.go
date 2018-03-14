@@ -31,9 +31,11 @@ func main() {
 	r.HandleFunc("/login", loginHandler).Methods("POST")
 	r.HandleFunc("/register", registerHandler).Methods("POST")
 
-	corsObj := handlers.AllowedOrigins([]string{"*"})
+	headersOk := handlers.AllowedHeaders([]string{"Authorization"})
+	originsOk := handlers.AllowedOrigins([]string{"*"})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
 
-	loggedRouter := handlers.CORS(corsObj)(handlers.LoggingHandler(os.Stdout, r))
+	loggedRouter := handlers.CORS(headersOk, originsOk, methodsOk)(handlers.LoggingHandler(os.Stdout, r))
 
 	srv := &http.Server{
 		Handler:      loggedRouter,
@@ -121,7 +123,6 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(login)
 	if len(login.Username) == 0 || len(login.Password) == 0 {
 		fmt.Fprintf(w, "Error required fields are missing")
 		return

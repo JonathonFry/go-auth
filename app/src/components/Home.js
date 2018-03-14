@@ -17,12 +17,13 @@ const mapDispatchToProps = dispatch => ({
 class Home extends React.Component {
   
   componentWillMount() {
+    var onLoad = this.props.onLoad;
     agent.Auth.all()
-    .then(function(response){
-      this.props.onLoad(response);  
+    .then(function(response) {
+      onLoad(response);  
     })
     .catch(function(error) {
-      console.log('There has been a problem with your fetch operation: ', error.message);
+      console.log('There has been a problem with your fetch operation: ', error);
     })
   }
 
