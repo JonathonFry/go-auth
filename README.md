@@ -8,7 +8,6 @@ To run with a clean db use:
 
 ## Next steps
 
-- migrate authentication to JWT tokens
 - handle authentication from the react app side
 - add HTTPS support for better security
 
