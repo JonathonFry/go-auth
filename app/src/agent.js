@@ -3,7 +3,6 @@ const API_BASE_URL = 'http://localhost:8080'
 let token = null;
 
 function status(response) {
-  console.log('status ' + response.status);
     if (response.status >= 200 && response.status < 300 && !response.redirected) {
       return Promise.resolve(response)
     } else {
