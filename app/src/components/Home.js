@@ -5,7 +5,8 @@ import agent from '../agent';
 import { USERS_LOADED } from '../constants/actionTypes';
 
 const mapStateToProps = state => ({
-  appName: state.appName
+  appName: state.appName,
+  inProgress: state.inProgress
 });
 
 const mapDispatchToProps = dispatch => ({
@@ -28,6 +29,12 @@ class Home extends React.Component {
   }
 
   render() {
+    if (this.props.inProgress) {
+      return (
+        <div className="home-page">
+        </div>
+      );
+    }
     return (
       <div className="home-page">
         <div className="container page">

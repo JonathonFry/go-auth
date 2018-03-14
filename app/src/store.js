@@ -5,7 +5,8 @@ import {
     REGISTER,
     UPDATE_FIELD_AUTH,
     USERS_LOADED,
-    LOGIN
+    LOGIN,
+    ASYNC_START
   } from './constants/actionTypes';
 
 const defaultState = {
@@ -24,8 +25,14 @@ const reducer = function(state = defaultState, action) {
                 ...state,
                 token: action.token || null,
                 appLoaded: true,
-                currentUser: action.payload ? action.payload.user : null
+                currentUser: action.payload ? action.payload : null
             };
+        case ASYNC_START:
+            if (action.subtype === LOGIN || action.subtype === REGISTER) {
+                return { ...state, inProgress: true };
+            } else {
+                return { ...state };
+            }
         case USERS_LOADED:
            return { ...state, users: action.payload}
         case UPDATE_FIELD_AUTH:

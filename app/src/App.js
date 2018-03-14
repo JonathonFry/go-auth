@@ -10,7 +10,7 @@ const mapStateToProps = state => ({
   appLoaded: state.appLoaded,
   appName: state.appName,
   users: state.users,
-  loggedIn: false,
+  currentUser: state.currentUser
 });
 
 const mapDispatchToProps = dispatch => ({
@@ -32,7 +32,7 @@ class App extends Component {
   render() {
     return (
       <div>
-        <Header appName={this.props.appName} />
+        <Header appName={this.props.appName} currentUser={this.props.currentUser}/>
         {this.props.children}
       </div>
     );
