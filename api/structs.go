@@ -1,7 +1,5 @@
 package main
 
-import jwt "github.com/dgrijalva/jwt-go"
-
 type registerPayload struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
@@ -19,11 +17,11 @@ type user struct {
 	Password string `json:"password"`
 }
 
-type AuthClaims struct {
-	Username string `json:"username"`
-	jwt.StandardClaims
+type authToken struct {
+	Token string `json:"token"`
 }
 
-type AuthToken struct {
-	Token string `json:token`
+type userResponse struct {
+	*user
+	authToken
 }
