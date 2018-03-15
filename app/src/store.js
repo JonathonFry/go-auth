@@ -6,7 +6,8 @@ import {
     UPDATE_FIELD_AUTH,
     USERS_LOADED,
     LOGIN,
-    ASYNC_START
+    ASYNC_START,
+    REDIRECT
   } from './constants/actionTypes';
 
 const defaultState = {
@@ -17,6 +18,7 @@ const defaultState = {
     password: '',
     token: null,
     currentUser: null,
+    redirectTo: null,
 };
 const reducer = function(state = defaultState, action) {
     switch (action.type) {
@@ -27,6 +29,8 @@ const reducer = function(state = defaultState, action) {
                 appLoaded: true,
                 currentUser: action.payload ? action.payload : null
             };
+        case REDIRECT:
+            return { ...state, redirectTo: null };
         case ASYNC_START:
             if (action.subtype === LOGIN || action.subtype === REGISTER) {
                 return { ...state, inProgress: true };
@@ -47,6 +51,7 @@ const reducer = function(state = defaultState, action) {
             return {
               ...state,
               inProgress: false,
+              redirectTo: '/',
               errors: action.error ? action.payload.errors : null
             };
         default: 

@@ -1,6 +1,7 @@
 import MainView from './MainView';
 import React from 'react';
 import { connect } from 'react-redux';
+import { withRouter } from 'react-router-dom'
 import agent from '../agent';
 import { USERS_LOADED } from '../constants/actionTypes';
 
@@ -48,4 +49,4 @@ class Home extends React.Component {
   }
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(Home);
+export default withRouter(connect(mapStateToProps, mapDispatchToProps)(Home));
