@@ -10,18 +10,18 @@ class UserPage extends React.Component {
     }
 
     render() {
-        const { user } = this.props;
+        const { loading, user, error } = this.props;
         return (
             <div className="col-md-6 col-md-offset-3">
             {user &&
                 <div>
                     <h1>Hi {user.username}!</h1>
-                    <p>Email address: {user.email}</p>
+                    <p>Email address: {user.email_address}</p>
                 </div>
-            }
+            } 
                 
-                {user.loading && <em>Loading user...</em>}
-                {user.error && <span className="text-danger">ERROR: {user.error}</span>}
+                {loading && <em>Loading user...</em>}
+                {error && <span className="text-danger">ERROR: {error}</span>}
                 <p>
                     <Link to="/login">Logout</Link>
                 </p>
@@ -31,9 +31,11 @@ class UserPage extends React.Component {
 }
 
 function mapStateToProps(state) {
-    const { user } = state.authentication;
+    const { loading, user, error}  = state.users;
     return {
-        user
+        loading,
+        user,
+        error
     };
 }
 

@@ -20,7 +20,7 @@ export function users(state = {}, action) {
       };
     case userConstants.GET_SUCCESS:
       return {
-        items: action.user
+        user: action.user
       };
     case userConstants.GET_FAILURE:
       return { 
