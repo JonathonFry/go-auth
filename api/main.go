@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -31,7 +32,7 @@ func main() {
 	r.HandleFunc("/login", loginHandler).Methods("POST")
 	r.HandleFunc("/register", registerHandler).Methods("POST")
 
-	headersOk := handlers.AllowedHeaders([]string{"Authorization"})
+	headersOk := handlers.AllowedHeaders([]string{"Authorization", "Content-Type"})
 	originsOk := handlers.AllowedOrigins([]string{"*"})
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
 
@@ -103,14 +104,15 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Fprintf(w, "Error registering user %s", err)
 	} else {
-		token, err := createToken(&user{Username: register.Username, Password: string(hash), Email: register.Email})
+		user := &user{Username: register.Username, Password: string(hash), Email: register.Email}
+		token, err := createToken(user)
 
 		if err != nil {
 			fmt.Fprintf(w, "Error generating token %s", err)
 			return
 		}
 
-		returnJSON(w, AuthToken{Token: token})
+		returnJSON(w, userResponse{user: user, authToken: authToken{Token: token}})
 	}
 }
 
@@ -147,7 +149,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	returnJSON(w, AuthToken{Token: token})
+	returnJSON(w, userResponse{user: user, authToken: authToken{Token: token}})
 }
 
 func createToken(user *user) (string, error) {
@@ -160,6 +162,7 @@ func createToken(user *user) (string, error) {
 }
 
 func token(tokenString string) (*jwt.Token, error) {
+	tokenString = strings.Replace(tokenString, "Bearer ", "", -1)
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return secret, nil
 	})
@@ -208,6 +211,8 @@ func loggedInUser(r *http.Request) (*user, error) {
 		}
 		c := token.Claims.(*jwt.MapClaims)
 		username := (*c)["username"].(string)
+
+		log.Println(username)
 
 		user, err := getUser(username, db)
 

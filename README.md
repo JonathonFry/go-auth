@@ -13,6 +13,7 @@ To run with a clean db use:
 
 ## Following this tutorial for react frontend:
 https://thinkster.io/tutorials/react-redux-ajax-middleware/
+http://jasonwatmore.com/post/2017/09/16/react-redux-user-registration-and-login-tutorial-example
 
 ## React app + JWT
 https://auth0.com/blog/secure-your-react-and-redux-app-with-jwt-authentication/
