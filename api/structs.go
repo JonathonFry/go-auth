@@ -25,3 +25,7 @@ type userResponse struct {
 	*user
 	authToken
 }
+
+type errorResponse struct {
+	Error string `json:"error"`
+}

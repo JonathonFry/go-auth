@@ -63,22 +63,22 @@ func authMiddleware(next http.Handler) http.Handler {
 var usersHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	users, err := getUsers(db)
 	if err != nil {
-		fmt.Fprintf(w, "Error retrieving users: %s", err)
+		returnJSON(w, http.StatusInternalServerError, errorResponse{Error: fmt.Sprintf("Error retrieving users: %s", err)})
 		return
 	}
 
-	returnJSON(w, users)
+	returnJSON(w, http.StatusOK, users)
 })
 
 var userHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	user, err := loggedInUser(r)
 
 	if err != nil {
-		fmt.Fprintf(w, "Error retrieving user: %s", err)
+		returnJSON(w, http.StatusInternalServerError, errorResponse{Error: fmt.Sprintf("Error retrieving user: %s", err)})
 		return
 	}
 
-	returnJSON(w, user)
+	returnJSON(w, http.StatusOK, user)
 })
 
 func registerHandler(w http.ResponseWriter, r *http.Request) {
@@ -86,12 +86,12 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(register)
 	if err != nil {
-		fmt.Fprintf(w, "Error parsing registration data")
+		returnJSON(w, http.StatusInternalServerError, errorResponse{Error: "Error parsing registration data"})
 		return
 	}
 
 	if len(register.Email) == 0 || len(register.Username) == 0 || len(register.Password) == 0 {
-		fmt.Fprintf(w, "Error required fields are missing")
+		returnJSON(w, http.StatusBadRequest, errorResponse{Error: "Error required fields are missing"})
 		return
 	}
 
@@ -101,19 +101,21 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = insertUser(register, hash, db)
+
 	if err != nil {
-		fmt.Fprintf(w, "Error registering user %s", err)
-	} else {
-		user := &user{Username: register.Username, Password: string(hash), Email: register.Email}
-		token, err := createToken(user)
-
-		if err != nil {
-			fmt.Fprintf(w, "Error generating token %s", err)
-			return
-		}
-
-		returnJSON(w, userResponse{user: user, authToken: authToken{Token: token}})
+		returnJSON(w, http.StatusInternalServerError, errorResponse{Error: fmt.Sprintf("Error registering user %s", err)})
+		return
 	}
+
+	user := &user{Username: register.Username, Password: string(hash), Email: register.Email}
+	token, err := createToken(user)
+
+	if err != nil {
+		returnJSON(w, http.StatusInternalServerError, errorResponse{Error: fmt.Sprintf("Error generating token %s", err)})
+		return
+	}
+
+	returnJSON(w, http.StatusOK, userResponse{user: user, authToken: authToken{Token: token}})
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -121,35 +123,34 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(login)
 	if err != nil {
-		fmt.Fprintf(w, "Error parsing login data")
+		returnJSON(w, http.StatusBadRequest, errorResponse{Error: "Error bad request"})
 		return
 	}
 
 	if len(login.Username) == 0 || len(login.Password) == 0 {
-		fmt.Fprintf(w, "Error required fields are missing")
+		returnJSON(w, http.StatusBadRequest, errorResponse{Error: "Error required fields are missing"})
 		return
 	}
 
 	user, err := getUser(login.Username, db)
 
 	if err != nil {
-		fmt.Fprintf(w, "User doesn't exist")
+		returnJSON(w, http.StatusNotFound, errorResponse{Error: "User not found"})
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(login.Password)); err != nil {
-		fmt.Fprintf(w, "Invalid password")
+		returnJSON(w, http.StatusUnauthorized, errorResponse{Error: "Invalid password"})
 		return
 	}
 
 	token, err := createToken(user)
 
 	if err != nil {
-		fmt.Fprintf(w, "Error generating token %s", err)
-		return
+		log.Fatal("Error generating token %s", err)
 	}
 
-	returnJSON(w, userResponse{user: user, authToken: authToken{Token: token}})
+	returnJSON(w, http.StatusOK, userResponse{user: user, authToken: authToken{Token: token}})
 }
 
 func createToken(user *user) (string, error) {
@@ -227,7 +228,7 @@ func loggedInUser(r *http.Request) (*user, error) {
 	return nil, errors.New("no user found")
 }
 
-func returnJSON(w http.ResponseWriter, data interface{}) {
+func returnJSON(w http.ResponseWriter, code int, data interface{}) {
 	json, marshalErr := json.Marshal(data)
 
 	if marshalErr != nil {
@@ -236,6 +237,6 @@ func returnJSON(w http.ResponseWriter, data interface{}) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(code)
 	w.Write(json)
 }
