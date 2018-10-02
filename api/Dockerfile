@@ -1,15 +1,10 @@
-FROM golang:1.10 AS builder
+FROM golang:1.11.0-stretch AS builder
 
-ADD https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 /usr/bin/dep
-RUN chmod +x /usr/bin/dep
+WORKDIR /login
 
-COPY . /go/src/github.com/jonathonfry/login
+COPY . ./
 
-WORKDIR /go/src/github.com/jonathonfry/login
-
-RUN dep ensure --vendor-only
-
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix nocgo -o /api .
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -o api
 
 CMD if [ ${ENV} = production ]; \
 	then \
